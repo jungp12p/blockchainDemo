@@ -6,11 +6,6 @@ import { sign, verifySignature } from "../crypto";
 import { state } from "../store";
 import classnames from "classnames";
 import Key from "./Key";
-import {
-  Tooltip,
-  advanceTo,
-  hideWalkthrough,
-} from "./walkthrough";
 export default class Signature extends Component {
   static defaultProps = {
     isEditable: true,
@@ -40,7 +35,6 @@ export default class Signature extends Component {
   };
 
   changePrivateKey = evt => {
-    hideWalkthrough();
     this.setState({ privateKey: evt.target.value });
   };
   calculatedSignature() {
@@ -64,7 +58,6 @@ export default class Signature extends Component {
 
   selectPrivateKey = privateKey => {
     return () => {
-      advanceTo(12);
       this.setState({ privateKey });
     };
   };
@@ -151,17 +144,7 @@ export default class Signature extends Component {
                         value={this.state.privateKey}
                       />
                       <div style={{ padding: "10px" }}>
-                      <Tooltip
-                      content={
-                        <p style={{ maxWidth: "250px" }}>
-                         Pick the right private key for the originating public key
-                        </p>
-                      }
-                      step={11}
-                      nextButtonVisible={false}
-                    >
-                          <h6>Identities you control</h6>
-                          </Tooltip>
+                        <h6 title="Pick the right private key for the originating public key">Identities you control</h6>
                         {Object.values(state.identities).map(identity => {
                           return (
                             <a
@@ -198,21 +181,13 @@ export default class Signature extends Component {
             <div className="pt-dialog-footer">
               <div className="pt-dialog-footer-actions">
                 <Button text="Cancel" onClick={this.closeSignature} />
-                <Tooltip
-                  content={
-                    <p style={{ maxWidth: "250px" }}>Add the signature here.</p>
-                  }
-                  nextLabel="Update"
-                  next={this.submitSignature}
-                  step={12}
-                >
-                  <Button
-                    iconName="pt-icon-add"
-                    className="pt-intent-primary"
-                    onClick={this.submitSignature}
-                    text="Update Signature"
-                  />
-                </Tooltip>
+                <Button
+                  iconName="pt-icon-add"
+                  className="pt-intent-primary"
+                  onClick={this.submitSignature}
+                  text="Update Signature"
+                  title="Add the signature here."
+                />
               </div>
             </div>
           </div>
@@ -221,3 +196,4 @@ export default class Signature extends Component {
     );
   }
 }
+ 

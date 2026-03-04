@@ -6,7 +6,7 @@ import { publish, subscribeTo } from "../network";
 import { maxBy, reduce, unfold, reverse, values, prop } from "ramda";
 
 class Blockchain {
-  constructor(name) {
+  constructor(name, initialIdentities = {}) {
     this.name = name;
     this.genesis = null;
     this.blocks = {};
@@ -14,6 +14,7 @@ class Blockchain {
     this.pendingTransactions = {};
 
     this.createGenesisBlock();
+    this.initializeGenesisBlock(initialIdentities);
 
     subscribeTo("BLOCKS_BROADCAST", ({ blocks, blockchainName }) => {
       if (blockchainName === this.name) {
@@ -55,6 +56,58 @@ class Blockchain {
     return reverse(unfold(getParent, this.maxHeightBlock()));
   }
 
+  getTransactionHistory(publicKey) {
+    const chain = this.longestChain();
+    const history = [];
+    
+    chain.forEach(block => {
+      // Check for coinbase reward
+      if (block.coinbaseBeneficiary === publicKey) {
+        history.push({
+          type: 'mining_reward',
+          amount: 10,
+          blockHash: block.hash,
+          blockHeight: block.height,
+          timestamp: block.hash // Using hash as pseudo-timestamp
+        });
+      }
+      
+      // Check all transactions in the block
+      Object.values(block.transactions).forEach(transaction => {
+        if (transaction.inputPublicKey === publicKey) {
+          // Outgoing transaction
+          history.push({
+            type: 'outgoing',
+            amount: transaction.amount,
+            fee: transaction.fee,
+            to: transaction.outputPublicKey,
+            from: transaction.inputPublicKey,
+            blockHash: block.hash,
+            blockHeight: block.height,
+            transactionHash: transaction.hash,
+            timestamp: block.hash
+          });
+        }
+        if (transaction.outputPublicKey === publicKey) {
+          // Incoming transaction
+          history.push({
+            type: 'incoming',
+            amount: transaction.amount,
+            fee: transaction.fee,
+            to: transaction.outputPublicKey,
+            from: transaction.inputPublicKey,
+            blockHash: block.hash,
+            blockHeight: block.height,
+            transactionHash: transaction.hash,
+            timestamp: block.hash
+          });
+        }
+      });
+    });
+    
+    return history;
+  }
+
   createGenesisBlock() {
     const block = new Block({
       blockchain: this,
@@ -64,6 +117,19 @@ class Blockchain {
     });
     this.blocks[block.hash] = block;
     this.genesis = block;
+  }
+
+  initializeGenesisBlock(identities) {
+    if (this.genesis) {
+      // Clear existing UTXOs to reset the pool
+      this.genesis.utxoPool.utxos = {};
+      // Add initial coins from each identity to the genesis block's UTXO pool
+      Object.values(identities).forEach(identity => {
+        if (identity.initialCoins && identity.initialCoins > 0) {
+          this.genesis.utxoPool.addUTXO(identity.publicKey, identity.initialCoins);
+        }
+      });
+    }
   }
 
   containsBlock(block) {
@@ -93,7 +159,7 @@ class Blockchain {
     block.utxoPool = newUtxoPool;
 
     // Add coinbase coin to the pool
-    block.utxoPool.addUTXO(block.coinbaseBeneficiary, 12.5);
+    block.utxoPool.addUTXO(block.coinbaseBeneficiary, 10);
 
     // Reapply transactions to validate them
     const transactions = block.transactions;

@@ -3,7 +3,7 @@ import "./App.css";
 import BlockchainWelcome from "./components/BlockchainWelcome";
 import { Button } from "@blueprintjs/core";
 import { action } from "./store";
-import { Tooltip, Dialog } from "./components/walkthrough";
+import { HASH_ALGORITHMS } from "./hash";
 
 class App extends Component {
   state = {
@@ -12,32 +12,53 @@ class App extends Component {
   pickBlockchain = name => {
     action({ type: "PICK_BLOCKCHAIN", name });
   };
+  changeHashAlgorithm = evt => {
+    action({ type: "CHANGE_HASH_ALGORITHM", algorithm: evt.target.value });
+  };
+  changeDifficulty = evt => {
+    action({ type: "CHANGE_DIFFICULTY", difficulty: parseInt(evt.target.value, 10) });
+  };
   render() {
     return (
       <div className="">
-        <nav className="pt-navbar">
+        <nav className="pt-navbar pt-dark">
           <div className="pt-navbar-group pt-align-left">
-            <div className="pt-navbar-heading">Build your own Blockchain</div>
-            Made by&nbsp;<a
-              href="https://twitter.com/nambrot"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              @nambrot
-            </a>
+            <div className="pt-navbar-heading">Blockchain Demo</div>
           </div>
 
           <div className="pt-navbar-group pt-align-right">
-            <Tooltip
-              step={1}
-              content={
-                <p style={{ maxWidth: "250px" }}>
-                  You can either keep the current blockchain or start you own
-                  blockchain from scratch
-                </p>
-              }
-            >
-              <select
+            <span style={{ marginRight: "10px", color: "#bfccd6" }}>Hash Algorithm:</span>
+            <select
+                style={{ marginRight: "15px" }}
+                onChange={this.changeHashAlgorithm}
+                value={this.props.appState.hashAlgorithm}
+                title="Choose the cryptographic hash algorithm"
+              >
+                {Object.keys(HASH_ALGORITHMS).map(key => (
+                  <option key={key} value={key}>
+                    {HASH_ALGORITHMS[key].name}
+                  </option>
+                ))}
+              </select>
+            <span style={{ marginRight: "10px", color: "#bfccd6" }}>Difficulty:</span>
+            <select
+                style={{ marginRight: "15px" }}
+                onChange={this.changeDifficulty}
+                value={this.props.appState.difficulty}
+                title="Number of trailing zeros required for valid block hash"
+              >
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+            <select
                 onChange={evt => {
                   this.pickBlockchain(evt.target.value);
                 }}
@@ -59,7 +80,6 @@ class App extends Component {
                   ))
                 )}
               </select>
-            </Tooltip>
             <div className="pt-control-group">
               <div className="pt-input-group">
                 <input
@@ -82,42 +102,17 @@ class App extends Component {
                     onClick={() =>
                       this.pickBlockchain(this.state.ownBlockchainName)
                     }
-                  />
+                  />  
                 </div>
               </div>
             </div>
           </div>
         </nav>
-        <Dialog step={0} title="Welcome!" quitWalkthroughVisible={true}>
-          <div>
-            <p>
-              This is an final step of an interactive blockchain demo. There is
-              a detailed step by step expanation of all the mechanics involved 
-              in making a blockchain that will give you a much better understanding 
-              of how blockchains work, so I highly recommend checking it out at {" "}
-              <a
-                href="https://github.com/nambrot/blockchain-in-js"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                repo at github.com/nambrot/blockchain-in-js
-              </a>{" "}.
-              Note that this is a distributed demo, so you can open up{" "}
-              <a href="/" target="_blank" rel="noopener noreferrer">
-                multiple tabs
-              </a>{" "}
-              of this app to simulate multiple participants. I have prepared a
-              walkthrough for you that you can follow along, or if you are the
-              more freedom-loving kind, you can quit and figure it out yourself.
-            </p>
-          </div>
-        </Dialog>
         <div className="container" style={{ padding: 24 }}>
           {this.props.appState.selectedBlockchain === undefined && (
-            <p>
-              Learn more about blockchains. Start by picking or create a new
-              blockchain in the top-right corner.
-            </p>
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <p>Select an existing blockchain or create your own using the dropdown above</p>
+            </div>
           )}
           {this.props.appState.selectedBlockchain !== undefined && (
             <BlockchainWelcome

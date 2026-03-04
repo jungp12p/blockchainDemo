@@ -1,9 +1,8 @@
-import sha256 from "crypto-js/sha256";
+import { hash } from "../hash";
 import UTXOPool from "./UTXOPool";
 import { map } from "ramda";
 import { transactionFromJSON } from "./Transaction";
-
-const DIFFICULTY = 2;
+import { getDifficulty } from "../store";
 
 class Block {
   constructor(opts) {
@@ -38,9 +37,10 @@ class Block {
     return this.parentHash === "root";
   }
   isValid() {
+    const difficulty = getDifficulty();
     return (
       this.isRoot() ||
-      (this.hash.substr(-DIFFICULTY) === "0".repeat(DIFFICULTY) &&
+      (this.hash.substr(-difficulty) === "0".repeat(difficulty) &&
         this.hash === this._calculateHash())
     );
   }
@@ -53,9 +53,6 @@ class Block {
       utxoPool: this.utxoPool.clone(),
       coinbaseBeneficiary
     });
-
-    // For convenience, allow the miner to immediately spend the coinbase coins
-    block.utxoPool.addUTXO(coinbaseBeneficiary, 12.5);
 
     return block;
   }
@@ -87,7 +84,7 @@ class Block {
   combinedTransactionsHash() {
     if (Object.values(this.transactions).length === 0)
       return "No Transactions in Block";
-    return sha256(
+    return hash(
       Object.values(this.transactions)
         .map(tx => tx.hash)
         .join("")
@@ -110,12 +107,12 @@ class Block {
   }
 
   _calculateHash() {
-    return sha256(
+    return hash(
       this.nonce +
         this.parentHash +
         this.coinbaseBeneficiary +
         this.combinedTransactionsHash()
-    ).toString();
+    );
   }
 }
 

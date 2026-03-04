@@ -8,6 +8,7 @@ import "./index.css";
 import { any, find } from "ramda";
 import Blockchain from "./models/Blockchain";
 import { generatePair } from "./crypto";
+import { setHashAlgorithm, getCurrentAlgorithm } from "./hash";
 
 const defaultBlockchain = new Blockchain("Bitcoin");
 
@@ -16,6 +17,7 @@ function createIdentity() {
 
   return {
     name: "Node " + pair.publicKey.substr(0, 10),
+    initialCoins: 0,
     ...pair
   };
 }
@@ -26,15 +28,12 @@ const identities = {};
 identities[identity.publicKey] = identity;
 
 let state = {
-  walkthrough: {
-    show: true,
-    step: 0,
-    enabled: window.localStorage.getItem("walkthroughEnabled") === null
-  },
   blockchains: [defaultBlockchain],
   selectedBlockchain: defaultBlockchain,
   identities: identities,
-  node: identity
+  node: identity,
+  hashAlgorithm: getCurrentAlgorithm(),
+  difficulty: 2
 };
 
 window.state = state;
@@ -49,7 +48,7 @@ const action = function(actionPayload) {
         state.blockchains
       );
       if (blockchain === undefined) {
-        blockchain = new Blockchain(actionPayload.name);
+        blockchain = new Blockchain(actionPayload.name, state.identities);
         state.blockchains.push(blockchain);
       }
       state.selectedBlockchain = blockchain;
@@ -57,7 +56,7 @@ const action = function(actionPayload) {
     case "BLOCKCHAIN_BROADCAST":
       actionPayload.names.forEach(name => {
         if (!any(b => b.name === name)(state.blockchains)) {
-          const blockchain = new Blockchain(name);
+          const blockchain = new Blockchain(name, state.identities);
           state.blockchains.push(blockchain);
         }
       });
@@ -73,23 +72,28 @@ const action = function(actionPayload) {
       identity.name = actionPayload.name;
       break;
     }
-    case "HIDE_WALKTHROUGH": {
-      state.walkthrough = { ...state.walkthrough, show: false };
+    case "CHANGE_IDENTITY_INITIAL_COINS": {
+      const identity = state.identities[actionPayload.publicKey];
+      if (identity === undefined) break;
+      identity.initialCoins = Math.max(0, actionPayload.initialCoins);
+      // Reinitialize the blockchain genesis block with new initial coins
+      if (state.selectedBlockchain) {
+        state.selectedBlockchain.initializeGenesisBlock(state.identities);
+      }
       break;
     }
-    case "ADVANCE_WALKTHROUGH": {
-      if (actionPayload.step !== undefined) {
-        if (state.walkthrough.step > actionPayload.step) break;
-        state.walkthrough.step = actionPayload.step;
-      } else state.walkthrough.step += 1;
-      state.walkthrough.show = true;
+
+    case "CHANGE_HASH_ALGORITHM": {
+      state.hashAlgorithm = actionPayload.algorithm;
+      setHashAlgorithm(actionPayload.algorithm);
       break;
     }
-    case "DISABLE_WALKTHROUGH": {
-      state.walkthrough = { ...state.walkthrough, enabled: false };
-      window.localStorage.setItem("walkthroughEnabled", false);
+
+    case "CHANGE_DIFFICULTY": {
+      state.difficulty = Math.max(1, Math.min(10, actionPayload.difficulty));
       break;
     }
+
     case "RERENDER":
       // do nothing really
       break;
@@ -105,6 +109,10 @@ const action = function(actionPayload) {
 
 export function rerender() {
   action({ type: "RERENDER" });
+}
+
+export function getDifficulty() {
+  return state.difficulty;
 }
 
 export { action, state };

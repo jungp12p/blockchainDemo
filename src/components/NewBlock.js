@@ -4,13 +4,11 @@ import { Tab2, Tabs2, Button } from "@blueprintjs/core";
 import NewBlockHeader from "./NewBlockHeader";
 import NewBlockTransactionList from "./NewBlockTransactionList";
 import UTXOPoolTable from "./UTXOPoolTable";
-import { Tooltip, advanceTo, isAtStep } from "./walkthrough";
 class NewBlock extends Component {
   addBlock = evt => {
     if (this.props.block.isValid()) {
       this.props.block.blockchain.addBlock(this.props.block);
       this.props.onCancel();
-      advanceTo(5);
     }
   };
 
@@ -18,16 +16,35 @@ class NewBlock extends Component {
     this.forceUpdate();
   };
   render() {
+    const identities = this.props.identities ? Object.values(this.props.identities) : [];
     return (
       <div style={{ padding: "10px" }}>
+        {identities.length > 1 && (
+          <div style={{ marginBottom: "15px" }}>
+            <label>
+              <strong>Miner (receives 10 coin reward):</strong>
+              <select
+                value={this.props.selectedMinerPublicKey || ""}
+                onChange={(evt) => this.props.onMinerChange && this.props.onMinerChange(evt.target.value)}
+                style={{ marginLeft: "10px", padding: "5px" }}
+              >
+                {identities.map(identity => (
+                  <option key={identity.publicKey} value={identity.publicKey}>
+                    {identity.name} ({identity.publicKey.substr(0, 10)}...)
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
         <Tabs2
           onChange={(newTabId, prevTabId, event) => {
-            if (newTabId === "txs" && isAtStep(14)) advanceTo(15);
+            // Tab changed
           }}
         >
           <Tab2
             id="blockheader"
-            title="Block Header"
+            title="Mining"
             panel={
               <NewBlockHeader
                 block={this.props.block}
@@ -37,19 +54,7 @@ class NewBlock extends Component {
           />
           <Tab2
             id="txs"
-            title={
-              <Tooltip
-                content={
-                  <p style={{ maxWidth: "250px" }}>
-                    Here you can see broadcasted transactions or add your own
-                  </p>
-                }
-                step={14}
-                nextButtonVisible={false}
-              >
-                Transactions
-              </Tooltip>
-            }
+            title="Transactions"
             panel={
               <NewBlockTransactionList
                 block={this.props.block}
@@ -59,46 +64,26 @@ class NewBlock extends Component {
           />
           <Tab2
             id="utxopool"
-            title="UTXO Pool"
+            title="Preview"
             panel={
               <div>
-                <p>
-                  This represents the UTXO pool after the mining reward and all
-                  transactions that would be applied, i.e. the successful mining
-                  and validation of a block.
-                </p>
                 <UTXOPoolTable block={this.props.block} />
               </div>
             }
           />
         </Tabs2>
 
-        <div style={{ float: "right" }}>
-          <Tooltip
-            content={
-              <p style={{ maxWidth: "250px" }}>
-                Assuming you did everything right, you have indeed found a
-                nonce, that will yield you a valid hash for your block. You can
-                now "add" your block to the parent block and brodcast it to
-                other nodes. If your block is part of the longest chain of
-                blocks and other nodes continue to work of this chain, then
-                you'll be indeed the owner of the mining reward.
-              </p>
-            }
-            next={this.addBlock}
-            nextLabel="Broadcast my block!"
-            step={4}
+        <div style={{ float: "right", marginTop: '20px' }}>
+          <Button
+            iconName="pt-icon-add"
+            className={classnames("pt-intent-primary", {
+              "pt-disabled": !this.props.block.isValid()
+            })}
+            onClick={this.addBlock}
+            title="Once you find a valid nonce (hash ending in zeros), broadcast your block to the network!"
           >
-            <Button
-              iconName="pt-icon-add"
-              className={classnames("pt-intent-primary", {
-                "pt-disabled": !this.props.block.isValid()
-              })}
-              onClick={this.addBlock}
-            >
-              Add Block
-            </Button>
-          </Tooltip>
+            Broadcast Block
+          </Button>
 
           <Button
             style={{ marginLeft: "10px", marginRight: "24px" }}

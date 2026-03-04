@@ -5,6 +5,9 @@ import UTXOPoolTable from "./UTXOPoolTable";
 import TransactionTable from "./TransactionTable";
 class DetailBlock extends Component {
   render() {
+    if (!this.props.block) {
+      return <div style={{ padding: "10px" }}>Loading...</div>;
+    }
     return (
       <div style={{ padding: "10px" }}>
         <Tabs2>
@@ -20,7 +23,7 @@ class DetailBlock extends Component {
           />
           <Tab2
             id="utxopool"
-            title="UTXOPool"
+            title="UTXO Pool"
             panel={<UTXOPoolTable block={this.props.block} />}
           />
         </Tabs2>
